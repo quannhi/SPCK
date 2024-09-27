@@ -1,0 +1,8 @@
+dg,rrg,For Everyone,Public(Everyone),Dang Thai Mai Middle School
+home,10$,Normal Party,Private(Friends),202 tran canh binh
+school,10$,Normal Party,Private(Friends),phan boi chau school
+party,100$,For Everyone,Public(Everyone),ving centre
+party2,100$,For Everyone,Public(Everyone),vinh centre
+current,we,For Everyone,Public(Everyone),Your Current Location
+dtm,10$,For Everyone,Public(Everyone),dang thai mai school
+current2,wrtsf,For Everyone,Public(Everyone),Your Current Location

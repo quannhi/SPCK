@@ -128,14 +128,14 @@
    <widget class="QLabel" name="label_7">
     <property name="geometry">
      <rect>
-      <x>130</x>
+      <x>140</x>
       <y>20</y>
       <width>55</width>
       <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>@email</string>
+     <string>@name</string>
     </property>
    </widget>
    <widget class="QWidget" name="widget" native="true">

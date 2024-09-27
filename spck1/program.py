@@ -1,38 +1,40 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit, QWidget, QDialog,QListWidget
 from PyQt6 import uic
 import sys
 import os
 import logging
-from PyQt6 import QtWidgets, uic
-import sys
+from PyQt6 import QtWidgets
+import webbrowser
 
-
-class AccountWindow(QMainWindow):
+class AccountWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None, username=None, password=None):
         super().__init__(parent)
         uic.loadUi("Account.ui", self)
+        self.setWindowTitle("Your Account")
         self.username = username
         self.password = password
         self.parent_window = parent
 
-        self.delete_button = self.findChild(QWidget, "delete_2")
+        # Connect delete button
+        self.delete_button = self.findChild(QtWidgets.QPushButton, "delete_2")
         if self.delete_button:
             self.delete_button.clicked.connect(self.delete_account)
 
-        self.widget_6 = self.findChild(QWidget, "widget_6")
+        # Connect widget for sign out confirmation
+        self.widget_6 = self.findChild(QtWidgets.QWidget, "widget_6")
         if self.widget_6:
             self.widget_6.mousePressEvent = self.show_sign_out_confirmation
 
     def delete_account(self):
         reply = QMessageBox.question(self, 'Confirm Account Deletion',
-                                    'Are you sure you want to delete your account?',
-                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                                     'Are you sure you want to delete your account?',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
-        if reply == QMessageBox.StandardButton.Yes:
+        if reply == QMessageBox.Yes:
             self.remove_user_from_files()
+            QMessageBox.information(self, 'Account Deleted', 'Account removed successfully.')
             self.close()
             self.parent_window.show_signup_page()
-            QMessageBox.information(self, 'Account Deleted', 'Account removed successfully.')
 
     def remove_user_from_files(self):
         self.remove_line_from_file("usernames.txt", self.username)
@@ -49,49 +51,137 @@ class AccountWindow(QMainWindow):
 
     def show_sign_out_confirmation(self, event):
         reply = QMessageBox.question(self, 'Sign Out Confirmation',
-                                    'Are you sure you want to sign out?',
-                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                                     'Are you sure you want to sign out?',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
-        if reply == QMessageBox.StandardButton.Yes:
+        if reply == QMessageBox.Yes:
             self.close()
             self.parent_window.show_login_page()
 
-import os
-import logging
 
 class MainPage(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("MainPage.ui", self)
-        self.setWindowTitle("Eventer")  # Set the window title
+        self.setWindowTitle("Eventer")
 
-        # Connect the "Book Now" button clicks to the show_notification function
-        self.pushButton.clicked.connect(self.show_notification)
-        self.pushButton_2.clicked.connect(self.show_notification)
-        self.pushButton_3.clicked.connect(self.show_notification)
+        # Connect buttons to functions
+        self.pushButton_event.clicked.connect(self.open_google_maps_event1)  # Go to Event 1
+        self.pushButton_event2.clicked.connect(self.open_google_maps_event2)  # Go to Event 2
+        self.pushButton_addevent.clicked.connect(self.add_event)  # Add Event
+        self.pushButton_search.clicked.connect(self.search_event)  # Search Event
+        self.pushButton_location.clicked.connect(self.set_current_location)  # Use Current Location
+        self.pushButton_sort.clicked.connect(self.sort_events)  # Sort By Tags
 
-        # Connect the "Add Event" button to the add_event method
-        self.pushButton_addevent.clicked.connect(self.add_event)
-
-    def show_notification(self):
-        # Placeholder for notification logic
-        print("Notification button clicked!")
+        self.load_events()  # Load events on startup
 
     def add_event(self):
-        # Get text from input fields
-        name = self.txtName.text()  # QLineEdit for event name
-        price = self.txtPrice.text()  # QLineEdit for price
-        tags = self.txtTags.currentText()  # QComboBox for tags
-        privacy = self.txtPrivacy.currentText()  # QComboBox for privacy setting
+        name = self.lineEdit_name.text().strip()
+        price = self.lineEdit_price.text().strip()
+        tags = self.lineEdit_tags.text().strip()
+        privacy = self.lineEdit_privacy.currentText()
+        location = self.lineEdit_location.text().strip()
 
-        # Update the display labels with the new information
-        self.label_name.setText(name)
-        self.label_price.setText(price)
-        self.label_tag.setText(tags)
-        self.label_privacy.setText(privacy)
+        if self.event_exists(name):
+            QMessageBox.warning(self, "Error", "This name already exists.")
+            return
 
-        # Optionally, you can create new labels or update existing ones here
-        # self.create_label(name, self.label_15.geometry(), self.label_15.font())
+        self.save_event(name, price, tags, privacy, location)
+        QMessageBox.information(self, "Success", "Event added successfully.")
+        self.load_events()  # Reload events after adding
+
+    def save_event(self, name, price, tags, privacy, location):
+        with open("events.txt", "a") as file:
+            file.write(f"{name},{price},{tags},{privacy},{location}\n")
+
+    def load_events(self):
+        # Clear previous event displays
+        self.clear_event_displays()
+
+        if os.path.exists("events.txt"):
+            with open("events.txt", "r") as file:
+                events = file.readlines()
+                for index, event in enumerate(events):
+                    name, price, tags, privacy, location = event.strip().split(',')
+                    if index == 0:
+                        self.eventname1.setText(name)
+                        self.price1.setText(price)
+                        self.tags1.setText(tags)
+                        self.privacy1.setText(privacy)
+                        self.location1.setText(location)
+                    elif index == 1:
+                        self.eventname2.setText(name)
+                        self.price2.setText(price)
+                        self.tags2.setText(tags)
+                        self.privacy2.setText(privacy)
+                        self.location2.setText(location)
+
+    def clear_event_displays(self):
+        # Clear all event labels
+        self.eventname1.setText("")
+        self.price1.setText("")
+        self.tags1.setText("")
+        self.privacy1.setText("")
+        self.location1.setText("")
+        self.eventname2.setText("")
+        self.price2.setText("")
+        self.tags2.setText("")
+        self.privacy2.setText("")
+        self.location2.setText("")
+
+    def event_exists(self, name):
+        if os.path.exists("events.txt"):
+            with open("events.txt", "r") as file:
+                events = file.readlines()
+                for event in events:
+                    if event.strip().split(',')[0] == name:
+                        return True
+        return False
+
+    def search_event(self):
+        search_text = self.lineEdit_search.text().strip()
+        matching_events = []
+
+        if os.path.exists("events.txt"):
+            with open("events.txt", "r") as file:
+                events = file.readlines()
+                for event in events:
+                    name, price, tags, privacy, location = event.strip().split(',')
+                    if search_text.lower() == name.lower():
+                        matching_events.append((name, price, tags, privacy, location))
+
+        if matching_events:
+            self.display_search_results(matching_events)
+        else:
+            QMessageBox.information(self, "No Matches", "No events found matching your search.")
+
+    def display_search_results(self, events):
+        # Display the first matching event
+        name, price, tags, privacy, location = events[0]
+        self.eventname1.setText(name)
+        self.price1.setText(price)
+        self.tags1.setText(tags)
+        self.privacy1.setText(privacy)
+        self.location1.setText(location)
+
+    def open_google_maps_event1(self):
+        if self.location1.text():
+            webbrowser.open(f"https://www.google.com/maps/search/?api=1&query={self.location1.text()}")
+        else:
+            QMessageBox.warning(self, "Error", "No location available to open.")
+
+    def open_google_maps_event2(self):
+        if self.location2.text():
+            webbrowser.open(f"https://www.google.com/maps/search/?api=1&query={self.location2.text()}")
+        else:
+            QMessageBox.warning(self, "Error", "No location available to open.")
+
+    def set_current_location(self):
+        QMessageBox.information(self, "Feature Not Implemented", "Sorry, this feature hasn't been implemented yet.")
+
+    def sort_events(self):
+        # Placeholder for sorting functionality
+        pass
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
@@ -100,7 +190,7 @@ if __name__ == "__main__":
     sys.exit(app.exec())
 
 
-class SignupPage(QMainWindow):
+class SignupPage(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("SignupPage.ui", self)
@@ -144,7 +234,9 @@ class SignupPage(QMainWindow):
         self.login_window = LoginPage()
         self.login_window.show()
         self.hide()
-class LoginPage(QMainWindow):
+
+
+class LoginPage(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("LoginPage.ui", self)
@@ -185,7 +277,7 @@ class LoginPage(QMainWindow):
         self.hide()
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     loginWindow = LoginPage()
     loginWindow.show()
     sys.exit(app.exec())
